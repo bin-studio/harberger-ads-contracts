@@ -45,16 +45,17 @@ contract HarbergerAds {
     // Possibly foreclose on property[id]
     function forecloseIfPossible(uint256 id) public {
         Property storage p = properties[id];
-        Account storage a = accounts[t.owner];
+        Account storage a = accounts[p.owner];
 
         // Owner must be broke and behind on taxes to foreclose
         if (a.balance == 0 && a.paidThru < now && a.sumOfPrices > 0) {
-            a.sumOfPrices -= t.price;
-            emit Change(id, 0, t.owner);
+            a.sumOfPrices -= p.price;
+            emit Change(id, 0, p.owner);
             delete(properties[id]);
         }
     }
 
+    event TaxesPaid(address owner, uint256 paid);
     // Collect taxes due from account.
     // Return true if taxes fully paid, false otherwise
     function collectTaxes(address addr) public returns (bool) {
@@ -65,6 +66,7 @@ contract HarbergerAds {
             a.paidThru = uint112(now);
             accounts[taxRecipient].balance += taxes;
             a.balance -= taxes;
+            emit TaxesPaid(addr, taxes);
             return true;
         } else {
             // Adjust paidThru proportionally (overflow check unnecessary)
@@ -72,6 +74,7 @@ contract HarbergerAds {
 
             // Collect entire balance for partially-paid taxes
             accounts[taxRecipient].balance += a.balance;
+            emit TaxesPaid(addr, a.balance);
             a.balance = 0;
             return false;
         }
@@ -91,31 +94,31 @@ contract HarbergerAds {
         Property storage p = properties[id];
 
         // Collect taxes from property's owner and possibly foreclose on property[id].
-        collectTaxes(t.owner);
+        collectTaxes(p.owner);
 
         // Foreclosure may change price and seller.
         forecloseIfPossible(id);
-        address seller = t.owner;
+        address seller = p.owner;
 
         if (seller != msg.sender) {
-            require(max >= t.price, "price is too high");
+            require(max >= p.price, "price is too high");
 
             // Collect taxes due from buyer before checking their balance
             collectTaxes(msg.sender);
-            require(accounts[msg.sender].balance >= t.price,
+            require(accounts[msg.sender].balance >= p.price,
                 "insufficient funds");
 
             // Transfer purchase price
-            accounts[seller].balance += t.price;
-            accounts[msg.sender].balance -= t.price;
+            accounts[seller].balance += p.price;
+            accounts[msg.sender].balance -= p.price;
 
-            t.owner = msg.sender;
+            p.owner = msg.sender;
         }
         // Adjust buyer's and seller's sumOfPrices
-        accounts[seller].sumOfPrices -= t.price;
+        accounts[seller].sumOfPrices -= p.price;
         accounts[msg.sender].sumOfPrices += price;
 
-        t.price = price;
+        p.price = price;
 
         emit Change(id, msg.sender, seller);
     }
