@@ -1,13 +1,13 @@
 pragma solidity ^0.4.24;
+import 'zeppelin-solidity/contracts/ownership/Ownable.sol';
 
-contract HarbergerAds {
-    address public taxRecipient;
-
+contract HarbergerAds is Ownable {
     // Per day tax rate
     uint32 public taxNumerator;
     uint32 public taxDenominator;
 
     struct Property {
+        address taxRecipient;
         address owner;
         uint96 price;
     }
@@ -15,12 +15,9 @@ contract HarbergerAds {
     Property[] public properties;
 
     constructor(
-        uint48 numberOfProperties,
         uint32 _taxNumerator,
         uint32 _taxDenominator
     ) public {
-        taxRecipient = msg.sender;
-        properties.length = numberOfProperties;
         taxNumerator = _taxNumerator;
         taxDenominator = _taxDenominator;
     }
@@ -41,6 +38,10 @@ contract HarbergerAds {
     }
 
     event Change(uint256 indexed id, address indexed to, address indexed from);
+
+    function addProperty(address receiver) public {
+
+    }
 
     // Possibly foreclose on property[id]
     function forecloseIfPossible(uint256 id) public {
@@ -64,7 +65,7 @@ contract HarbergerAds {
         uint256 taxes = taxesDue(addr);
         if (taxes <= a.balance) {
             a.paidThru = uint112(now);
-            accounts[taxRecipient].balance += taxes;
+            accounts[a.taxRecipient].balance += taxes;
             a.balance -= taxes;
             emit TaxesPaid(addr, taxes);
             return true;
@@ -73,7 +74,7 @@ contract HarbergerAds {
             a.paidThru += uint112((now - a.paidThru) * a.balance / taxes);
 
             // Collect entire balance for partially-paid taxes
-            accounts[taxRecipient].balance += a.balance;
+            accounts[a.taxRecipient].balance += a.balance;
             emit TaxesPaid(addr, a.balance);
             a.balance = 0;
             return false;
@@ -142,8 +143,8 @@ contract HarbergerAds {
 
     address public newRecipient;
 
-    function approveRecipient(address _newRecipient) public {
-        require(msg.sender == taxRecipient, "must be taxRecipient");
+    function approveRecipient(uint256 id, address _newRecipient) public {
+        require(msg.sender == properties[id].taxRecipient, "must be taxRecipient");
         newRecipient = _newRecipient;
     }
 
