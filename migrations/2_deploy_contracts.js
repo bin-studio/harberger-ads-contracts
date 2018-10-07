@@ -12,7 +12,7 @@ module.exports = (deployer, network, accounts) => {
         await deployer.deploy(ERC20test)
         _ERC20test = await ERC20test.deployed()
         console.log(_ + 'ERC20test deployed at: ' + _ERC20test.address)
-        await _ERC20test.mint(accounts[0], '1000000000000000000000')
+        await _ERC20test.mint(accounts[0], {value:'100000000000000000'})
       } else if (network === 'mainnet'){
         _ERC20test.address = '0x0' // dai address here
       } else {
