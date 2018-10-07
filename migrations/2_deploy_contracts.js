@@ -7,7 +7,7 @@ module.exports = (deployer, network, accounts) => {
   deployer.then(async () => {
     try {
       let _ERC20test
-      if (network === 'ganache' || network === 'rinkeby') {
+      if (network === 'ganache' || network === 'rinkeby' || network === 'parity') {
         // Deploy HarbergerAds.sol
         await deployer.deploy(ERC20test)
         _ERC20test = await ERC20test.deployed()
@@ -17,11 +17,10 @@ module.exports = (deployer, network, accounts) => {
         _ERC20test.address = '0x0' // dai address here
       } else {
         console.log('network is ' + network)
-
       }
 
         // Deploy HarbergerAds.sol
-        await deployer.deploy(HarbergerAds, _ERC20test.address, 5, 100)
+        await deployer.deploy(HarbergerAds, _ERC20test.address, 50000000000, 1000000000000)
         let harbergerAds = await HarbergerAds.deployed()
         console.log(_ + 'HarbergerAds deployed at: ' + harbergerAds.address)
 

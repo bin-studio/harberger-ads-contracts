@@ -1,27 +1,24 @@
 var utils = require('web3-utils')
 var HarbergerAds = artifacts.require('./HarbergerAds.sol')
+var ERC20test = artifacts.require('./ERC20test.sol')
 
 let gasPrice = 1000000000 // 1GWEI
 
 let _ = '        '
 
 contract('HarbergerAds', async function(accounts) {
-  let sample
+  let harbergerAds, _ERC20test
 
   before(done => {
     ;(async () => {
       try {
-        var totalGas = new web3.BigNumber(0)
-
+        _ERC20test = await ERC20test.new()
+        await _ERC20test.mint(accounts[0], '1000000000000000000000')
+        
         // Deploy HarbergerAds.sol
-        sample = await HarbergerAds.new()
-        var tx = web3.eth.getTransactionReceipt(sample.transactionHash)
-        totalGas = totalGas.plus(tx.gasUsed)
-        console.log(_ + tx.gasUsed + ' - Deploy sample')
-        sample = await HarbergerAds.deployed()
+        harbergerAds = await HarbergerAds.new(_ERC20test.address, 50000000000, 1000000000000)
+        console.log(harbergerAds.address)
 
-        console.log(_ + '-----------------------')
-        console.log(_ + totalGas.toFormat(0) + ' - Total Gas')
         done()
       } catch (error) {
         console.error(error)
@@ -31,11 +28,17 @@ contract('HarbergerAds', async function(accounts) {
   })
 
   describe('HarbergerAds.sol', function() {
-    it('should pass', async function() {
-      assert(
-        true === true,
-        'this is true'
-      )
+    it('should make, buy and tax property', async function() {
+      try {
+        await _ERC20test.approve(harbergerAds.address, '1000000000000000000000000000')
+        await harbergerAds.addProperty()
+        await harbergerAds.buy(0, '100000000000000000000', '100000000000000000000')
+        await increaseTime(1000)
+        await harbergerAds.collectTaxes(0)
+      }catch (error) {
+        console.error(error)
+        assert(false, 'error occurred')
+      }
     })
 
   })
@@ -74,6 +77,35 @@ function increaseBlock() {
       (err, result) => {
         if (err) reject(err)
         resolve(result)
+      }
+    )
+  })
+}
+
+function increaseTime(amount) {
+  return new Promise((resolve, reject) => {
+    web3.currentProvider.sendAsync(
+      {
+        jsonrpc: '2.0',
+        method: 'evm_increaseTime',
+        params: [amount],
+        id: new Date().getSeconds()
+      },
+      (err, result) => {
+        if (err) {reject(err)}
+        else {
+          if (!err) {
+            web3.currentProvider.sendAsync({
+              jsonrpc: '2.0',
+              method: 'evm_mine',
+              params: [],
+              id: new Date().getSeconds()
+            }, (err, result) => {
+              if (err) reject(err)
+              resolve(result)
+            })
+          }
+        }
       }
     )
   })

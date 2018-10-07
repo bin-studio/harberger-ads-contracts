@@ -79,6 +79,14 @@ module.exports = {
       },
       gasPrice: 1000000000,
       network_id: 99
-    }
+    },
+    parity: {
+      host: 'localhost',
+      port: '8545',
+      from: '0xddf8430d91ca7cf8df175813b58865dff2e15bc6',
+      // gasPrice: 1000000000,
+      network_id: '*'
+    },
+
   }
 }

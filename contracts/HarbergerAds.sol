@@ -4,24 +4,24 @@ import 'zeppelin-solidity/contracts/token/ERC20/ERC20.sol';
 
 contract HarbergerAds is Ownable {
     // Per day tax rate
-    uint32 public taxNumerator;
-    uint32 public taxDenominator;
+    uint256 public taxNumerator;
+    uint256 public taxDenominator;
 
     ERC20 public erc20;
 
     struct Property {
         address taxRecipient;
         address owner;
-        uint144 price;
-        uint112 paidThru;
+        uint256 price;
+        uint256 paidThru;
     }
 
     Property[] public properties;
 
     constructor(
         ERC20 erc20Address,
-        uint32 _taxNumerator,
-        uint32 _taxDenominator
+        uint256 _taxNumerator,
+        uint256 _taxDenominator
     ) public {
         taxNumerator = _taxNumerator;
         taxDenominator = _taxDenominator;
@@ -74,16 +74,20 @@ contract HarbergerAds is Ownable {
         uint256 balance = balanceOf(p.owner);
         uint256 taxes = taxesDue(id);
         if (taxes <= balance) {
-            p.paidThru = uint112(now);
-            require(erc20.transferFrom(p.owner, p.taxRecipient, taxes), 'transferFrom failed');
+            p.paidThru = uint256(now);
+            if (taxes > 0) {
+                require(erc20.transferFrom(p.owner, p.taxRecipient, taxes), 'transferFrom failed');
+            }
             emit TaxesPaid(id, p.owner, taxes);
             return true;
         } else {
             // Adjust paidThru proportionally (overflow check unnecessary)
-            p.paidThru += uint112((now - p.paidThru) * balance / taxes);
+            p.paidThru += uint256((now - p.paidThru) * balance / taxes);
 
             // Collect entire balance for partially-paid taxes
-            require(erc20.transferFrom(p.owner, p.taxRecipient, balance), 'transferFrom failed');
+            if (balance > 0) {
+                require(erc20.transferFrom(p.owner, p.taxRecipient, balance), 'transferFrom failed');
+            }
             emit TaxesPaid(id, p.owner, balance);
             return false;
         }
@@ -93,7 +97,7 @@ contract HarbergerAds is Ownable {
     function buy(
         uint256 id,
         uint256 max,
-        uint96 price
+        uint256 price
     )
         public
     {
@@ -113,7 +117,9 @@ contract HarbergerAds is Ownable {
                 "insufficient funds");
 
             // Transfer purchase price
-            require(erc20.transferFrom(p.owner, seller, p.price), 'transferFrom failed');
+            if (p.price > 0) {
+                require(erc20.transferFrom(p.owner, seller, p.price), 'transferFrom failed');
+            }
             p.owner = msg.sender;
         }
 
