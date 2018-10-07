@@ -49,19 +49,20 @@ contract HarbergerAds is Ownable {
     event ChangeRecipient(uint256 indexed id, address indexed to, address indexed from);
     event TaxesPaid(uint256 indexed id, address owner, uint256 paid);
 
-    function addProperty() public {
+    function addProperty(uint256 price) public {
         Property memory p;
+        p.owner = msg.sender;
         p.taxRecipient = msg.sender;
+        p.price = price;
         uint256 id = properties.push(p) - 1;
-        emit Change(id, 0, 0, 0);
+        emit Change(id, msg.sender, 0, price);
     }
 
     // Possibly foreclose on property[id]
     function forecloseIfPossible(uint256 id) public {
         Property storage p = properties[id];
-
         // Owner must be broke and behind on taxes to foreclose
-        if (balanceOf(p.owner) == 0 && p.paidThru < now && p.price > 0) {
+        if (p.owner != p.taxRecipient && balanceOf(p.owner) == 0 && p.paidThru < now && p.price > 0) {
             emit Change(id, 0, p.owner, 0);
             delete(properties[id]);
         }
@@ -71,6 +72,10 @@ contract HarbergerAds is Ownable {
     // Return true if taxes fully paid, false otherwise
     function collectTaxes(uint256 id) public returns (bool) {
         Property storage p = properties[id];
+        if (p.owner == p.taxRecipient) {
+            p.paidThru = uint256(now);
+            return true;
+        }
         uint256 balance = balanceOf(p.owner);
         uint256 taxes = taxesDue(id);
         if (taxes <= balance) {

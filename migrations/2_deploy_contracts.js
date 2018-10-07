@@ -7,7 +7,7 @@ module.exports = (deployer, network, accounts) => {
   deployer.then(async () => {
     try {
       let _ERC20test
-      if (network === 'ganache' || network === 'rinkeby' || network === 'parity') {
+      if (network === 'ganache' || network === 'rinkeby' || network === 'parity' || network === 'rinkeby-fork') {
         // Deploy HarbergerAds.sol
         await deployer.deploy(ERC20test)
         _ERC20test = await ERC20test.deployed()
